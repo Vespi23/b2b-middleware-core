@@ -1,0 +1,35 @@
+name: Build & Verify Production Container
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Unit Verification Test
+      run: |
+        python -c "import main; print('[✓] FastAPI module imports without error')"
+
+    - name: Build Docker Container
+      run: |
+        docker build -t b2b-middleware:latest .
+        docker run -d -p 8000:8000 --name test-app b2b-middleware:latest
+        sleep 3
+        curl --fail http://localhost:8000/healthz || exit 1
+        echo "[✓] Container health check passed"
